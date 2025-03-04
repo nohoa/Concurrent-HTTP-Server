@@ -1,4 +1,4 @@
 # Concurrent-HTTP-Server
-Concurrent Server that support GET PUT POST AND File System Request
+Thread-based concurrent HTTP Server that support GET PUT POST AND File System Request
 
 
