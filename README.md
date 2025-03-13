@@ -16,7 +16,23 @@ GET /index.html HTTP/1.1\r\nHost: localhost:4221\r\nUser-Agent: curl/7.64.1\r\nA
 
 Testing the GET Method for URL Path from Codecrafters' description : 
 
-* Send a random string as URL path to the 4221 port service : 
+* Running server : 
+
+```
+mkdir build
+
+cd build 
+
+cmake ..
+
+make 
+
+./server
+
+```
+
+
+* Open a new terminal and send a random string as URL path to the 4221 port service : 
 
 ```
 curl -v http://localhost:4221/abcdefg
