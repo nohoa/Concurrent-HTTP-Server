@@ -13,14 +13,8 @@
 #include <sstream>
 #include<pthread.h>
 #include<zlib.h>
-void send_client(int conn_fd, std :: string msg){
-    char message[msg.length()] ;
-           for(int i = 0 ;i < msg.length() ;i ++){
-              message[i] = msg[i];
-          } 
-          //std :: cout << message[0] << std :: endl;
-        send(conn_fd,message,strlen(message),0) ;
-}
+#include "Sender.hpp"
+
 std::string gzip_compress(const std::string &data) {
   std :: cout << "data is : " <<  data << std :: endl; 
   z_stream zs;
@@ -50,6 +44,8 @@ std::string gzip_compress(const std::string &data) {
   }
 int  handle_connect(int conn_fd , struct sockaddr_in client_addr,int client_addr_len, std ::string argu) { 
     std::string client_message(65536, '\0');
+    Sender* message_sender = new Sender();
+
     char msg[65536] = {};
   if (recvfrom(conn_fd, msg, sizeof(msg)-1, 0, (struct sockaddr *) &client_addr, (socklen_t *) &client_addr_len) == SO_ERROR){
     std::cerr << "listen failed\n";
@@ -105,7 +101,8 @@ int  handle_connect(int conn_fd , struct sockaddr_in client_addr,int client_addr
        ofs.close() ;
      }
       std :: string message_value = "HTTP/1.1 201 Created\r\n\r\n"; 
-      send_client(conn_fd, message_value);
+
+      message_sender->send_client(conn_fd, message_value);
     return 0;
   }
   if(msg[5] != ' ') {
@@ -126,7 +123,7 @@ int  handle_connect(int conn_fd , struct sockaddr_in client_addr,int client_addr
             }
             std :: string message_value = all_value;
             message_value += "Content-Length:" + std ::to_string(agent.length()) + "\r\n\r\n" + agent ; 
-            send_client(conn_fd, message_value);
+            message_sender->send_client(conn_fd, message_value);
       }
       else if(endpoint.substr(0,5).compare("files") == 0){
         std::string fileName = endpoint.substr(6);
@@ -139,7 +136,7 @@ int  handle_connect(int conn_fd , struct sockaddr_in client_addr,int client_addr
             message_value = "HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Encoding: gzip\r\nContent-Length: " + std::to_string(cnt.str().length()) + "\r\n\r\n" + cnt.str() + "\r\n";
           }
           //std :: cout << val << std :: endl; 
-          send_client(conn_fd, message_value);
+          message_sender->send_client(conn_fd, message_value);
         }
         else {
           char res[] = "HTTP/1.1 404 Not Found\r\n\r\n";
