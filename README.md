@@ -1,10 +1,11 @@
 # Concurrent-HTTP-Server
-Thread-based concurrent HTTP Server that supports GET PUT POST AND File System requests
+Thread-based concurrent HTTP Server that supports GET PUT POST AND File System requests inspired from Codecrafters 
+HTTP Network Server 
 
 # NOTE ABOUT SERVICE 
 
 * The default local port of this server is 4221
-* 
+
 # Testing
 
 * Extract URL path for HTTP server :
