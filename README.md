@@ -17,7 +17,7 @@ GET /index.html HTTP/1.1\r\nHost: localhost:4221\r\nUser-Agent: curl/7.64.1\r\nA
 
 Testing the GET Method for URL Path from Codecrafters' description : 
 
-* Running server : 
+* Running cmake server : 
 
 ```
 mkdir build
