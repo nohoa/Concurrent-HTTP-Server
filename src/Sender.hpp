@@ -11,7 +11,7 @@
 
 class Sender {
     public : 
-       virtual void send_client(int conn_fd, std :: string& msg); 
+       virtual void send_client(int conn_fd, std :: string& msg);  
 
 };
 
