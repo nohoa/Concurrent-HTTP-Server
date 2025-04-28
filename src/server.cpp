@@ -73,8 +73,7 @@ int handle_connect(int conn_fd, struct sockaddr_in client_addr,
     bool compress_header = false;
     std::unique_ptr<HTTP_Reader> message_reader{
         std::make_unique<HTTP_Reader>()};
-    std::map<std::string, std::string> section_map =
-        message_reader->parse(msg, bytes_received);
+      Request section_reader = message_reader->parse(msg, bytes_received);
     for (int i = 0; i < 300; i++) {
       if (msg[i] == 'g' && msg[i + 1] == 'z') {
         compress_header = true;
@@ -93,7 +92,7 @@ int handle_connect(int conn_fd, struct sockaddr_in client_addr,
       all_value = "HTTP/1.1 200 OK\r\nContent-Type: "
                   "text/plain\r\nContent-Encoding: gzip\r\n";
     }
-    if (msg[0] == 'P') {
+    if (section_reader.request_name == "POST") {
       std::string endpoint = "";
       std ::string len = "";
       std ::string data = "";
@@ -178,7 +177,7 @@ int handle_connect(int conn_fd, struct sockaddr_in client_addr,
             close(conn_fd);
             break;
           }
-        } else if (endpoint.substr(0, 5).compare("files") == 0) {
+        } else if (section_reader.file_directory.find("files") != std::string::npos) {
           std::string fileName = endpoint.substr(6);
           std::ifstream ifs(argu + fileName);
           if (ifs.good()) {
