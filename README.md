@@ -15,8 +15,6 @@ HTTP Network Server
 GET /index.html HTTP/1.1\r\nHost: localhost:4221\r\nUser-Agent: curl/7.64.1\r\nAccept: */*\r\n\r\n
 ```
 
-Testing the GET Method for URL Path from Codecrafters' description : 
-
 * Running cmake server : 
 
 ```
@@ -32,8 +30,10 @@ make
 
 ```
 
+Testing the GET Method for URL Path from Codecrafters' description : 
 
-* Open a new terminal and send a random string as URL path to the 4221 port service : 
+
+✅ Open a new terminal and send a random string as URL path to the 4221 port service : 
 
 ```
 curl -v http://localhost:4221/abcdefg
@@ -45,7 +45,7 @@ curl -v http://localhost:4221/abcdefg
 HTTP/1.1 404 Not Found\r\n\r\n
 ```
 
-* Send an empty string as URL path to the 4221 port service : 
+✅ Send an empty string as URL path to the 4221 port service : 
 
 ```
 curl -v http://localhost:4221/abcdefg
@@ -57,4 +57,24 @@ curl -v http://localhost:4221/abcdefg
 HTTP/1.1 200 OK\r\n\r\n
 ```
 
+✅ Support POST request header and concurrent client connections : 
 
+```
+$ (sleep 3 && printf "GET / HTTP/1.1\r\n\r\n") | nc localhost 4221 &
+$ (sleep 3 && printf "GET / HTTP/1.1\r\n\r\n") | nc localhost 4221 &
+$ (sleep 3 && printf "GET / HTTP/1.1\r\n\r\n") | nc localhost 4221 &
+```
+
+✅ Read from file directory : 
+```
+./server --directory /tmp/
+
+```
+
+✅ Support gzip compression optimization : 
+
+```
+$ curl -v -H "Accept-Encoding: gzip" http://localhost:4221/echo/abc | hexdump -C
+```
+
+✅ Support close connection and persistent connections
