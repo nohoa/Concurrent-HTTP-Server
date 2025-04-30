@@ -8,4 +8,6 @@ struct Request {
     std::string user_agent ;
     int content_len ;
     bool accept_encoding ;
+    std::string content ;
+    bool close_connection ;
 };

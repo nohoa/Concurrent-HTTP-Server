@@ -1,14 +1,12 @@
 #include "Reader.hpp"
 #include<iostream>
 #include <string>
+#include <utility>
 
 Request HTTP_Reader :: parse(char msg[1024], int size){
     Request request_reader ;
     std::map<std::string,std::string> mp;
     int id = 0 ;
-    for(int i = 0; i < size ;i ++){
-        std::cout << msg[i] ;
-    }
     std::string request_command ;
     while(id < size && msg[id] != ' '){
         request_command += msg[id];
@@ -26,6 +24,8 @@ Request HTTP_Reader :: parse(char msg[1024], int size){
     id++;
     std::string key ;
     while(id < size){
+        key.clear();
+        value.clear();
         while(id < size && msg[id] != ':'){
             key += msg[id];
             id ++;
@@ -36,12 +36,22 @@ Request HTTP_Reader :: parse(char msg[1024], int size){
             value += msg[id];
             id ++;
         }
+        if(value.empty()){
+            request_reader.content = std::move(key);
+        }
         if(key.empty() || value.empty()) break;
-        if(key == "Content-length"){
+        if(key.find("Content-Length") != std::string::npos ){
             request_reader.content_len = std::stoi(value);
         }
-        else if(key == "Accept-encoding"){
-            if(value == "gzip") request_reader.accept_encoding = true;
+        else if(key.find("Accept-Encoding") != std::string::npos ){
+            if(value.find("gzip") != std::string::npos) request_reader.accept_encoding = true;
+            else request_reader.accept_encoding = false;
+        }
+        else if(key.find("Connection") != std::string::npos){
+            request_reader.close_connection = true;
+        }
+        else if(key.find("User-Agent") != std::string::npos){
+            request_reader.user_agent = value ;
         }
 
         mp[key] = value;

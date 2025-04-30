@@ -55,7 +55,7 @@ std::string gzip_compress(const std::string &data) {
   return outstring;
 }
 int handle_connect(int conn_fd, struct sockaddr_in client_addr,
-                   int client_addr_len, std ::string argu) {
+                   int client_addr_len, std ::string prefix_directory) {
   int cnt = 0;
   bool is_close = false;
   while (true) {
@@ -74,18 +74,8 @@ int handle_connect(int conn_fd, struct sockaddr_in client_addr,
     std::unique_ptr<HTTP_Reader> message_reader{
         std::make_unique<HTTP_Reader>()};
       Request section_reader = message_reader->parse(msg, bytes_received);
-    for (int i = 0; i < 300; i++) {
-      if (msg[i] == 'g' && msg[i + 1] == 'z') {
-        compress_header = true;
-      }
-    }
-
-    for (int i = 0; i < bytes_received - 2; i++) {
-      if (msg[i] == 'c' && msg[i + 1] == 'l' && msg[i + 2] == 'o') {
-        is_close = true;
-        break;
-      }
-    }
+    compress_header = section_reader.accept_encoding;
+    is_close = section_reader.close_connection;
 
     std ::string all_value = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n";
     if (compress_header == true) {
@@ -93,70 +83,24 @@ int handle_connect(int conn_fd, struct sockaddr_in client_addr,
                   "text/plain\r\nContent-Encoding: gzip\r\n";
     }
     if (section_reader.request_name == "POST") {
-      std::string endpoint = "";
-      std ::string len = "";
-      std ::string data = "";
-      int content_len = 0;
-      int curr_id = 12;
-      while (msg[curr_id] != ' ') {
-        endpoint += msg[curr_id];
-        curr_id++;
-      }
-      int content_id = 0;
-      for (int i = 0; i < 105; i++) {
-        if (msg[i] == 'L' && msg[i + 1] == 'e' && msg[i + 2] == 'n') {
-          content_id = i + 8;
-          break;
-        }
-      }
-      while (msg[content_id] != '\r') {
-        len += msg[content_id];
-        content_id++;
-      }
-      content_len = std ::stoi(len);
-      int data_id = content_id;
-      while (msg[data_id] != ':')
-        data_id++;
-      while (msg[data_id] != '\n')
-        data_id++;
-      while (msg[data_id] == '\r' || msg[data_id] == '\n')
-        data_id++;
-      int start = 0;
-      while (start < content_len) {
-        start++;
-        data += msg[data_id];
-        data_id++;
-      }
-      std ::string end_dir = argu + endpoint;
+
+      std ::string end_dir = prefix_directory + section_reader.file_directory.substr(7);
+
       std::ofstream ofs(end_dir);
       if (ofs.good()) {
-        ofs << data;
+        ofs << section_reader.content.substr(4);
         ofs.close();
       }
       std ::string message_value = "HTTP/1.1 201 Created\r\n\r\n";
       send_client(conn_fd, message_value);
       return 0;
     }
-    if (msg[5] != ' ') {
-      std::string endpoint = "";
-      int curr_id = 5;
-      while (msg[curr_id] != ' ') {
-        endpoint += msg[curr_id];
-        curr_id++;
-      }
+    if (section_reader.file_directory.size() > 1 ) {
+      std::string endpoint = section_reader.file_directory.substr(1);
       if (endpoint.length() < 5 || endpoint.substr(0, 4).compare("echo") != 0) {
         if (endpoint.compare("user-agent") == 0) {
-          cnt++;
-          int curr_id = 0;
-          while (curr_id < bytes_received && msg[curr_id] != 'U') {
-            curr_id++;
-          }
-          curr_id += 12;
-          std ::string agent = "";
-          while (msg[curr_id] != '\r') {
-            agent += msg[curr_id];
-            curr_id++;
-          }
+
+          std ::string agent = section_reader.user_agent;
           std ::string message_value = all_value;
 
           if (is_close) {
@@ -179,8 +123,9 @@ int handle_connect(int conn_fd, struct sockaddr_in client_addr,
           }
         } else if (section_reader.file_directory.find("files") != std::string::npos) {
           std::string fileName = endpoint.substr(6);
-          std::ifstream ifs(argu + fileName);
+          std::ifstream ifs(prefix_directory + fileName);
           if (ifs.good()) {
+             // File exist
             std::stringstream cnt;
             cnt << ifs.rdbuf();
             std ::string message_value =
@@ -199,12 +144,14 @@ int handle_connect(int conn_fd, struct sockaddr_in client_addr,
 
             send_client(conn_fd, message_value);
           } else {
-            char res[] = "HTTP/1.1 404 Not Found\r\n\r\n";
-            send(conn_fd, res, strlen(res), 0);
+             // File doesn't exist ;
+            std::string respond = "HTTP/1.1 404 Not Found\r\n\r\n";
+            send_client(conn_fd, respond);
           }
         } else {
-          char res[] = "HTTP/1.1 404 Not Found\r\n\r\n";
-          send(conn_fd, res, strlen(res), 0);
+           // No File endpoint;
+           std::string respond = "HTTP/1.1 404 Not Found\r\n\r\n";
+           send_client(conn_fd, respond);
         }
       } else {
         std ::string message_value = all_value;
@@ -298,18 +245,16 @@ int main(int argc, char **argv) {
 
   std::cout << "Waiting for a client to connect...\n";
 
-  std::string dir;
+  std::string file_prefix;
   if (argc == 3 && strcmp(argv[1], "--directory") == 0) {
-    dir = argv[2];
+    file_prefix = argv[2];
   }
-  // int conn_fd = accept(server_fd, (struct sockaddr *) &client_addr,
-  // (socklen_t *) &client_addr_len); std::cout << "Client connected\n";
-  //  int status = handle_connect(conn_fd, client_addr, client_addr_len, dir) ;
+
   while (true) {
     int conn_fd = accept(server_fd, (struct sockaddr *)&client_addr,
                          (socklen_t *)&client_addr_len);
     std::cout << "Client connected\n";
-    std::thread th(handle_connect, conn_fd, client_addr, client_addr_len, dir);
+    std::thread th(handle_connect, conn_fd, client_addr, client_addr_len, file_prefix);
     th.detach();
   }
   close(server_fd);
